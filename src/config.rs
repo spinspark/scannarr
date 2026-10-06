@@ -1,9 +1,9 @@
 use crate::cli::Cli;
 use anyhow::Context;
+use secrecy::SecretString;
 use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
-use secrecy::SecretString;
 
 #[derive(Debug, Deserialize)]
 pub struct ServiceConfig {
