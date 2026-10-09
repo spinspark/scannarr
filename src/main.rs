@@ -14,8 +14,8 @@ mod models;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let config = AppConfig::load(&cli).context("Failed to load config")?;
-    let command = cli.command;
+    let Cli { api, command } = cli;
+    let config = AppConfig::load(api).context("Failed to load config")?;
 
     command.dispatch(&config).await
 }

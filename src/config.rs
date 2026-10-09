@@ -1,9 +1,8 @@
-use crate::cli::Cli;
+use crate::cli::ApiArgs;
 use anyhow::Context;
 use secrecy::SecretString;
 use serde::Deserialize;
 use std::fs;
-use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 pub struct ServiceConfig {
@@ -30,12 +29,8 @@ struct RawServiceConfig {
 }
 
 impl AppConfig {
-    pub fn load(cli: &Cli) -> anyhow::Result<Self> {
-        let path = cli.config.clone().unwrap_or_else(|| {
-            dirs::config_dir()
-                .map(|dir| dir.join("scannarr").join("config.toml"))
-                .unwrap_or_else(|| PathBuf::from("config.toml"))
-        });
+    pub fn load(args: ApiArgs) -> anyhow::Result<Self> {
+        let path = args.config;
 
         let contents = fs::read_to_string(&path)
             .with_context(|| format!("Failed to read config file at '{}'", path.display()))?;
@@ -47,15 +42,13 @@ impl AppConfig {
             )
         })?;
 
-        let sonarr_url = cli
+        let sonarr_url = args
             .sonarr_url
-            .clone()
             .or_else(|| raw_config.sonarr.as_ref().and_then(|f| f.url.clone()))
             .filter(|s| !s.trim().is_empty());
 
-        let sonarr_api_key = cli
+        let sonarr_api_key = args
             .sonarr_api_key
-            .clone()
             .or_else(|| raw_config.sonarr.as_ref().and_then(|f| f.api_key.clone()));
 
         let sonarr = match (sonarr_url, sonarr_api_key) {
@@ -63,15 +56,13 @@ impl AppConfig {
             _ => None,
         };
 
-        let radarr_url = cli
+        let radarr_url = args
             .radarr_url
-            .clone()
             .or_else(|| raw_config.radarr.as_ref().and_then(|f| f.url.clone()))
             .filter(|s| !s.trim().is_empty());
 
-        let radarr_api_key = cli
+        let radarr_api_key = args
             .radarr_api_key
-            .clone()
             .or_else(|| raw_config.radarr.as_ref().and_then(|f| f.api_key.clone()));
 
         let radarr = match (radarr_url, radarr_api_key) {

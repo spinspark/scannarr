@@ -7,6 +7,13 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+fn default_config_path() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("scannarr")
+        .join("config.toml")
+}
+
 #[derive(Debug, Parser)]
 #[command(
     name = "scannarr",
@@ -14,9 +21,18 @@ use std::str::FromStr;
     about = "A blazingly fast CLI tool for Sonarr and Radarr, written in Rust."
 )]
 pub struct Cli {
+    #[command(flatten)]
+    pub api: ApiArgs,
+
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Debug, Args)]
+pub struct ApiArgs {
     /// Custom path to config file
-    #[arg(short, long, global = true)]
-    pub config: Option<PathBuf>,
+    #[arg(short, long, global = true, default_value_os_t = default_config_path())]
+    pub config: PathBuf,
 
     /// Override Sonarr URL
     #[arg(long, global = true, env = "SONARR_URL")]
@@ -33,9 +49,6 @@ pub struct Cli {
     /// Override Radarr API Key
     #[arg(long, global = true, env = "RADARR_API_KEY")]
     pub radarr_api_key: Option<SecretString>,
-
-    #[command(subcommand)]
-    pub command: Command,
 }
 
 #[derive(Debug, Subcommand)]
