@@ -59,8 +59,8 @@ pub enum Command {
         #[command(flatten)]
         filters: Filters,
 
-        #[arg(long, default_value_t = SortBy::default() )]
-        sort: SortBy,
+        #[arg(long, default_value_t = SortOrder::default() )]
+        sort: SortOrder,
     },
 }
 
@@ -82,6 +82,16 @@ pub enum SortField {
     Title,
     Year,
     Monitored,
+}
+
+impl SortField {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Title => "title",
+            Self::Year => "year",
+            Self::Monitored => "monitored",
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -110,12 +120,7 @@ impl FromStr for SortField {
 
 impl fmt::Display for SortField {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::Title => "title",
-            Self::Year => "year",
-            Self::Monitored => "monitored",
-        };
-        write!(f, "{s}")
+        f.write_str(self.as_str())
     }
 }
 
@@ -124,6 +129,15 @@ pub enum SortDirection {
     #[default]
     Ascending,
     Descending,
+}
+
+impl SortDirection {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Ascending => "asc",
+            Self::Descending => "desc",
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -151,39 +165,35 @@ impl FromStr for SortDirection {
 
 impl fmt::Display for SortDirection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::Ascending => "asc",
-            Self::Descending => "desc",
-        };
-        write!(f, "{s}")
+        f.write_str(self.as_str())
     }
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct SortBy {
+pub struct SortOrder {
     pub field: SortField,
     pub direction: SortDirection,
 }
 
 #[derive(Debug)]
-pub enum ParseSortByError {
+pub enum ParseSortOrderError {
     Field(ParseSortFieldError),
     Direction(ParseSortDirectionError),
 }
 
-impl From<ParseSortFieldError> for ParseSortByError {
+impl From<ParseSortFieldError> for ParseSortOrderError {
     fn from(err: ParseSortFieldError) -> Self {
         Self::Field(err)
     }
 }
 
-impl From<ParseSortDirectionError> for ParseSortByError {
+impl From<ParseSortDirectionError> for ParseSortOrderError {
     fn from(err: ParseSortDirectionError) -> Self {
         Self::Direction(err)
     }
 }
 
-impl fmt::Display for ParseSortByError {
+impl fmt::Display for ParseSortOrderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Field(err) => write!(f, "{err}"),
@@ -192,25 +202,25 @@ impl fmt::Display for ParseSortByError {
     }
 }
 
-impl Error for ParseSortByError {}
+impl Error for ParseSortOrderError {}
 
-impl FromStr for SortBy {
-    type Err = ParseSortByError;
+impl FromStr for SortOrder {
+    type Err = ParseSortOrderError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.split(':').collect();
         let field = SortField::from_str(parts[0])?;
 
         let direction = match parts.get(1) {
-            Some(direction) => SortDirection::from_str(direction)?,
-            None => SortDirection::default(),
+            Some(s) => SortDirection::from_str(s)?,
+            None => SortDirection::default()
         };
 
         Ok(Self { field, direction })
     }
 }
 
-impl fmt::Display for SortBy {
+impl fmt::Display for SortOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self { field, direction } = self;
         write!(f, "{field}:{direction}")

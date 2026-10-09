@@ -1,4 +1,4 @@
-use crate::cli::{Filters, SortBy, SortDirection, SortField};
+use crate::cli::{Filters, SortDirection, SortField, SortOrder};
 use crate::client::ArrClient;
 use crate::config::AppConfig;
 use comfy_table::Table;
@@ -39,7 +39,7 @@ pub async fn handle_test(config: &AppConfig) -> anyhow::Result<()> {
 pub async fn handle_search(
     config: &AppConfig,
     filters: Filters,
-    sort_by: SortBy,
+    sort_by: SortOrder,
 ) -> anyhow::Result<()> {
     println!("Fetching movies...");
 
