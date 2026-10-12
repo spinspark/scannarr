@@ -19,8 +19,6 @@ pub struct Movie {
     pub year: u16,
     pub original_language: MinimalResource,
     pub status: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub overview: Option<String>,
     pub runtime: u16,
     pub studio: String,
     #[serde(skip_serializing_if = "Option::is_none")]

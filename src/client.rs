@@ -53,7 +53,10 @@ impl ArrClient {
         api_key: &SecretString,
         movie_id: u32,
     ) -> anyhow::Result<MovieFile> {
-        let endpoint = format!("{}/api/v3/moviefile?movieId={movie_id}", base_url.trim_end_matches('/'));
+        let endpoint = format!(
+            "{}/api/v3/moviefile?movieId={movie_id}",
+            base_url.trim_end_matches('/')
+        );
 
         let mut results: Vec<MovieFile> = self.fetch_json(&endpoint, api_key).await?;
         let movie = results.pop().context("No file found for this movie")?;
@@ -87,9 +90,7 @@ impl ArrClient {
                 .await
                 .unwrap_or_else(|_| "Unavailable".to_string());
 
-            anyhow::bail!(
-                "HTTP Error {status}: {hint}\nURL: {endpoint}\nDetails: {error_body}"
-            );
+            anyhow::bail!("HTTP Error {status}: {hint}\nURL: {endpoint}\nDetails: {error_body}");
         }
 
         response

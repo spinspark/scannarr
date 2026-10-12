@@ -1,5 +1,5 @@
 use crate::cache;
-use crate::cli::{Filters, SortDirection, SortField, SortOrder};
+use crate::cli::{Filters, MovieField, SortDirection, SortOrder};
 use crate::client::ArrClient;
 use crate::config::AppConfig;
 use crate::models::Movie;
@@ -43,6 +43,7 @@ pub async fn handle_search(
     config: &AppConfig,
     filters: Filters,
     sort_by: SortOrder,
+    fields: &[MovieField],
     force_refresh: bool,
 ) -> anyhow::Result<()> {
     println!("Fetching movies...");
@@ -97,11 +98,25 @@ pub async fn handle_search(
         selected_movies.retain(|m| m.monitored);
     }
 
+    if let Some(score) = filters.custom_format_score {
+        selected_movies.retain(|m| {
+            m.file
+                .as_ref()
+                .and_then(|f| f.custom_format_score)
+                .is_some_and(|movie_score| movie_score == score)
+        });
+    }
+
     selected_movies.sort_unstable_by(|a, b| {
         let ordering = match sort_by.field {
-            SortField::Title => a.title.cmp(&b.title),
-            SortField::Year => a.year.cmp(&b.year),
-            SortField::Monitored => a.monitored.cmp(&b.monitored),
+            MovieField::Title => a.title.cmp(&b.title),
+            MovieField::Year => a.year.cmp(&b.year),
+            MovieField::Monitored => a.monitored.cmp(&b.monitored),
+            MovieField::CustomFormatScore => {
+                let score_a = a.file.as_ref().and_then(|f| f.custom_format_score);
+                let score_b = b.file.as_ref().and_then(|f| f.custom_format_score);
+                score_a.cmp(&score_b)
+            }
         };
 
         if sort_by.direction == SortDirection::Descending {
@@ -112,13 +127,25 @@ pub async fn handle_search(
     });
 
     let mut table = Table::new();
-    table.set_header(["Title", "Year", "Monitored"]);
+    let header_row: Vec<&str> = fields.iter().map(|f| f.as_header()).collect();
+    table.set_header(header_row);
 
     for movie in selected_movies {
-        let year_string = movie.year.to_string();
-        let monitored_string = movie.monitored.to_string();
-
-        table.add_row([&movie.title, &year_string, &monitored_string]);
+        let row: Vec<String> = fields
+            .iter()
+            .map(|field| match field {
+                MovieField::Title => movie.title.clone(),
+                MovieField::Year => movie.year.to_string(),
+                MovieField::Monitored => movie.monitored.to_string(),
+                MovieField::CustomFormatScore => movie
+                    .file
+                    .as_ref()
+                    .and_then(|f| f.custom_format_score)
+                    .map(|score| score.to_string())
+                    .unwrap_or_default(),
+            })
+            .collect();
+        table.add_row(row);
     }
     println!("{table}");
 

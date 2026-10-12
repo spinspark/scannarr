@@ -14,6 +14,65 @@ fn default_config_path() -> PathBuf {
         .join("config.toml")
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum MovieField {
+    Title,
+    Year,
+    Monitored,
+    CustomFormatScore,
+}
+
+impl MovieField {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Title => "title",
+            Self::Year => "year",
+            Self::Monitored => "monitored",
+            Self::CustomFormatScore => "custom-format-score",
+        }
+    }
+
+    pub const fn as_header(self) -> &'static str {
+        match self {
+            Self::Title => "Title",
+            Self::Year => "Year",
+            Self::Monitored => "Monitored",
+            Self::CustomFormatScore => "Custom Format Score",
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ParseMovieFieldError;
+
+impl fmt::Display for ParseMovieFieldError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "provided string was not a valid movie field")
+    }
+}
+
+impl Error for ParseMovieFieldError {}
+
+impl FromStr for MovieField {
+    type Err = ParseMovieFieldError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "title" => Ok(Self::Title),
+            "year" => Ok(Self::Year),
+            "monitored" => Ok(Self::Monitored),
+            "custom-format-score" => Ok(Self::CustomFormatScore),
+            _ => Err(ParseMovieFieldError),
+        }
+    }
+}
+
+impl fmt::Display for MovieField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug, Parser)]
 #[command(
     name = "scannarr",
@@ -59,8 +118,11 @@ pub enum Command {
         #[command(flatten)]
         filters: Filters,
 
-        #[arg(long, default_value_t = SortOrder::default() )]
+        #[arg(long, default_value = "title")]
         sort: SortOrder,
+
+        #[arg(long, value_delimiter = ',', default_value = "title,year,monitored")]
+        fields: Vec<MovieField>,
 
         #[arg(long)]
         refresh: bool,
@@ -77,54 +139,9 @@ pub struct Filters {
 
     #[arg(long)]
     pub monitored: bool,
-}
 
-#[derive(Debug, Clone, Copy, Default)]
-pub enum SortField {
-    #[default]
-    Title,
-    Year,
-    Monitored,
-}
-
-impl SortField {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Title => "title",
-            Self::Year => "year",
-            Self::Monitored => "monitored",
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ParseSortFieldError;
-
-impl fmt::Display for ParseSortFieldError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "provided string was not a valid sort field")
-    }
-}
-
-impl Error for ParseSortFieldError {}
-
-impl FromStr for SortField {
-    type Err = ParseSortFieldError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "title" => Ok(Self::Title),
-            "year" => Ok(Self::Year),
-            "monitored" => Ok(Self::Monitored),
-            _ => Err(ParseSortFieldError),
-        }
-    }
-}
-
-impl fmt::Display for SortField {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
+    #[arg(long)]
+    pub custom_format_score: Option<i32>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -172,20 +189,20 @@ impl fmt::Display for SortDirection {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct SortOrder {
-    pub field: SortField,
+    pub field: MovieField,
     pub direction: SortDirection,
 }
 
 #[derive(Debug)]
 pub enum ParseSortOrderError {
-    Field(ParseSortFieldError),
+    Field(ParseMovieFieldError),
     Direction(ParseSortDirectionError),
 }
 
-impl From<ParseSortFieldError> for ParseSortOrderError {
-    fn from(err: ParseSortFieldError) -> Self {
+impl From<ParseMovieFieldError> for ParseSortOrderError {
+    fn from(err: ParseMovieFieldError) -> Self {
         Self::Field(err)
     }
 }
@@ -212,7 +229,7 @@ impl FromStr for SortOrder {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.split(':').collect();
-        let field = SortField::from_str(parts[0])?;
+        let field = MovieField::from_str(parts[0])?;
 
         let direction = match parts.get(1) {
             Some(s) => SortDirection::from_str(s)?,
@@ -237,8 +254,9 @@ impl Command {
             Self::Search {
                 filters,
                 sort,
+                fields,
                 refresh,
-            } => handle_search(config, filters, sort, refresh).await,
+            } => handle_search(config, filters, sort, &fields, refresh).await,
         }
     }
 }
