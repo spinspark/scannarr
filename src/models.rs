@@ -19,45 +19,56 @@ pub struct Movie {
     pub year: u16,
     pub original_language: MinimalResource,
     pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub overview: Option<String>,
     pub runtime: u16,
     pub studio: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub certification: Option<String>,
     pub genres: Vec<String>,
     pub monitored: bool,
     pub has_file: bool,
     pub is_available: bool,
     pub added: Timestamp,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub in_cinemas: Option<Timestamp>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub digital_release: Option<Timestamp>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub release_date: Option<Timestamp>,
+    #[serde(rename = "movieFile", skip_serializing_if = "Option::is_none")]
+    pub file: Option<MovieFile>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MovieFile {
     pub id: u32,
     pub movie_id: u32,
     pub size: u64,
-    pub scene_name: String,
+    pub relative_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub release_group: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub edition: Option<String>,
     pub languages: Vec<MinimalResource>,
-    pub custom_format_score: i32,
-    pub custom_formats: Vec<MinimalResource>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_format_score: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_formats: Option<Vec<MinimalResource>>,
     pub date_added: Timestamp,
     pub quality: MediaQuality,
     pub media_info: MediaInfo,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaQuality {
     pub quality: Quality,
     pub revision: Revision,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Quality {
     pub id: u32,
@@ -67,7 +78,7 @@ pub struct Quality {
     pub modifier: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Revision {
     pub version: u32,
@@ -75,18 +86,20 @@ pub struct Revision {
     pub is_repack: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaInfo {
     pub audio_bitrate: u32,
-    pub audio_channels: f32,
+    pub audio_channels: f64,
     pub audio_codec: String,
     pub audio_languages: String,
     pub video_bit_depth: u8,
     pub video_bitrate: u32,
     pub video_codec: String,
-    pub video_fps: u8,
+    pub video_fps: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub video_dynamic_range: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub video_dynamic_range_type: Option<String>,
     pub subtitles: String,
 }

@@ -66,6 +66,16 @@ pub async fn handle_search(
                 .get_all_movies(&radarr.url, &radarr.api_key)
                 .await?;
 
+            for movie in &mut source_movies {
+                if !movie.has_file {
+                    continue;
+                }
+                let file = http_client
+                    .get_file_by_movie_id(&radarr.url, &radarr.api_key, movie.id)
+                    .await?;
+                movie.file = Some(file);
+            }
+
             cache::write_to_cache(source_movies.clone())?;
         } else {
             println!("Radarr: Not configured (missing URL or API key)");

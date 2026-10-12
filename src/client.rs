@@ -47,15 +47,17 @@ impl ArrClient {
         self.fetch_json(&endpoint, api_key).await
     }
 
-    pub async fn get_movie_file_by_id(
+    pub async fn get_file_by_movie_id(
         &self,
         base_url: &str,
         api_key: &SecretString,
-        id: u32,
+        movie_id: u32,
     ) -> anyhow::Result<MovieFile> {
-        let endpoint = format!("{}/api/v3/moviefile/{id}", base_url.trim_end_matches('/'));
+        let endpoint = format!("{}/api/v3/moviefile?movieId={movie_id}", base_url.trim_end_matches('/'));
 
-        self.fetch_json(&endpoint, api_key).await
+        let mut results: Vec<MovieFile> = self.fetch_json(&endpoint, api_key).await?;
+        let movie = results.pop().context("No file found for this movie")?;
+        Ok(movie)
     }
 
     async fn fetch_json<T: DeserializeOwned>(
@@ -72,9 +74,21 @@ impl ArrClient {
             .with_context(|| format!("Failed to connect to {endpoint}"))?;
 
         if !response.status().is_success() {
+            let status = response.status();
+            let hint = match status.as_u16() {
+                401 | 403 => "Check if your API key is missing, expired, or invalid.",
+                404 => "The requested resource or endpoint path could not be found.",
+                429 => "You are being rate-limited. Please slow down your requests.",
+                500..=599 => "The remote server encountered an internal error. Try again later.",
+                _ => "Verify your request parameters and network connectivity.",
+            };
+            let error_body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unavailable".to_string());
+
             anyhow::bail!(
-                "HTTP Error {}: API key or URL might be invalid",
-                response.status()
+                "HTTP Error {status}: {hint}\nURL: {endpoint}\nDetails: {error_body}"
             );
         }
 
