@@ -17,5 +17,18 @@ async fn main() -> anyhow::Result<()> {
     let Cli { api, command } = cli;
     let config = AppConfig::load(api).context("Failed to load config")?;
 
-    command.dispatch(&config).await
+    with_cancel(command.dispatch(&config)).await
+}
+
+/// Wraps an async future, automatically exiting with code 130 if Ctrl+C is pressed
+async fn with_cancel<F, T, E>(future: F) -> Result<T, E>
+where
+    F: Future<Output = Result<T, E>>,
+{
+    tokio::select! {
+        res = future => res,
+        _ = tokio::signal::ctrl_c() => {
+            std::process::exit(130);
+        }
+    }
 }

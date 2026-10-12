@@ -85,7 +85,7 @@ pub enum SortField {
 }
 
 impl SortField {
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Title => "title",
             Self::Year => "year",
@@ -132,7 +132,7 @@ pub enum SortDirection {
 }
 
 impl SortDirection {
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Ascending => "asc",
             Self::Descending => "desc",
@@ -213,7 +213,7 @@ impl FromStr for SortOrder {
 
         let direction = match parts.get(1) {
             Some(s) => SortDirection::from_str(s)?,
-            None => SortDirection::default()
+            None => SortDirection::default(),
         };
 
         Ok(Self { field, direction })
