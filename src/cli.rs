@@ -61,6 +61,9 @@ pub enum Command {
 
         #[arg(long, default_value_t = SortOrder::default() )]
         sort: SortOrder,
+
+        #[arg(long)]
+        refresh: bool,
     },
 }
 
@@ -231,7 +234,11 @@ impl Command {
     pub async fn dispatch(self, config: &AppConfig) -> anyhow::Result<()> {
         match self {
             Self::Test => handle_test(config).await,
-            Self::Search { filters, sort } => handle_search(config, filters, sort).await,
+            Self::Search {
+                filters,
+                sort,
+                refresh,
+            } => handle_search(config, filters, sort, refresh).await,
         }
     }
 }

@@ -5,6 +5,7 @@ use crate::config::AppConfig;
 use anyhow::Context;
 use clap::Parser;
 
+mod cache;
 mod cli;
 mod client;
 mod config;
