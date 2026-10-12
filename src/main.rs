@@ -11,7 +11,7 @@ mod config;
 mod handlers;
 mod models;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let Cli { api, command } = cli;
